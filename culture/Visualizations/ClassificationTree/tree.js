@@ -1,5 +1,17 @@
 // Get the data from the Google document
 // can this be re-written recursively...?
+function calcSize(n) {
+  if (n.hasOwnProperty("size")){
+    return n.size;
+  }
+  sum = 0;  
+  for (var i in n.children){
+    sum = sum + calcSize(n.children[i]);
+  }
+  n.size = sum;
+  return n.size;
+}
+
 var url = "https://docs.google.com/spreadsheet/pub?key=0AgfOXjbH2KOddHR3c0JDbGpLa3E1UkVpUjRhaE5JeEE&output=csv";
 var allData = {};
 json = ""
@@ -17,16 +29,19 @@ $.get(url,{}, function (d) {
       for(var o in occs){
         raw_list = []
         for (i in occs[o]){ //occupations
-          raw_list.push({name:occs[o][i].raw, size:occs[o][i].count});
+          raw_list.push({name:occs[o][i].raw, size:parseInt(occs[o][i].count)});
         }
-        occ_list.push({name:o, children:raw_list})
+        occ_list.push({name:o, children:raw_list});
       }
       ind_list.push({name:k, children: occ_list});
     }
     cat_list.push({name:key, children: ind_list});
   }
   allData = {name: 'occupations', children: cat_list};
-  //json = JSON.stringify(allData);
+  
+  calcSize(allData);
+  json = JSON.stringify(allData);
+  //console.log(json);
 
   var m = [20, 120, 20, 120],
       w = 1280 - m[1] - m[3],
@@ -89,13 +104,13 @@ $.get(url,{}, function (d) {
         .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
         .attr("dy", ".35em")
         .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
-        .text(function(d) { 
-          if (d.hasOwnProperty("size")){
-            return d.name + " (" + d.size + ")";   
-          }
-          else{
-            return d.name;
-          }
+        .text(function(d) { return d.name + " (" + d.size.toString() + ")"; 
+          // if (d.hasOwnProperty("size")){
+          //   return d.name + " (" + calc(d) + ")";   
+          // }
+          // else{
+          //   return d.name + " (" + calc(d) + ")";
+          // }
         })
         .style("fill-opacity", 1e-6);
 
@@ -106,7 +121,7 @@ $.get(url,{}, function (d) {
 
     nodeUpdate.select("circle")
         .attr("r", 4.5) 
-        //.attr("r", function(d) { return d.size ? Math.sqrt(d.size) : 4.5; } )
+        //.attr("r", function(d){ return d.size ? Math.sqrt(d.size/1000) : 4.5; } )
         .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
 
     nodeUpdate.select("text")
